@@ -1,6 +1,7 @@
 #ifndef _IOTSASIMPLEIO_H_
 #define _IOTSASIMPLEIO_H_
 #include "iotsa.h"
+#include "iotsaApi.h"
 
 #define PWM_OUTPUT OUTPUT + 42
 
@@ -34,8 +35,8 @@ public:
   virtual bool setMode(int _mode) {
     if (mode == _mode) return false;
     mode = _mode;
-    if (mode == PWM_OUTPUT) mode = OUTPUT;
-    pinMode(pin, mode);
+    if (_mode == PWM_OUTPUT) _mode = OUTPUT;
+    pinMode(pin, _mode);
     return true;
   };
   virtual void setValue(int _value) {
@@ -46,7 +47,7 @@ public:
       analogWrite(pin, value);
   };
   virtual int getValue() {
-    if (mode == OUTPUT) return value;
+    if (mode == OUTPUT || mode == PWM_OUTPUT) return value;
     return digitalRead(pin);
   };
 };
@@ -54,7 +55,12 @@ public:
 class AnalogInput : public GPIOPort {
 public:
   AnalogInput(const char *name, int _pin) : GPIOPort(name, _pin) {}
-  virtual bool setMode(int _mode) { return false; }
+  virtual bool setMode(int _mode) { 
+    if (_mode < 0 || _mode == INPUT) { 
+      mode = _mode; return true;
+    } 
+    return false; 
+  }
   virtual void setValue(int _value) {}
   virtual int getValue() {
     return analogRead(pin);
@@ -64,26 +70,31 @@ public:
 class TimestampInput : public GPIOPort {
 public:
   TimestampInput() : GPIOPort("timestamp", -1) {}
-  virtual bool setMode(int _mode) { return false; }
+  virtual bool setMode(int _mode) { 
+    if (_mode < 0 || _mode == INPUT) { 
+      mode = _mode; return true;
+    } 
+    return false; 
+  }
   virtual void setValue(int _value) {}
   virtual int getValue() {
     return millis();
   };
 };
 
-class IotsaGPIOMod : public IotsaMod {
+class IotsaGPIOMod : public IotsaApiMod {
 public:
-  using IotsaMod::IotsaMod;
+  using IotsaApiMod::IotsaApiMod;
   void setup();
   void serverSetup();
   void loop();
   String info();
 protected:
+  bool getHandler(const char *path, JsonObject& reply);
+  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply);
   void configLoad();
   void configSave();
   void handler();
-  void apiHandler();
-  String argument;
 };
 
 #endif
