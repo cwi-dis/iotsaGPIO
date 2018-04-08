@@ -4,8 +4,8 @@ python:
 install:
 - pip install -U platformio
 script:
-- platformio run
-before-deploy:
+- platformio run --environment nodemcuv2
+before_deploy:
 - |
   (
     mkdir ~/deploy
