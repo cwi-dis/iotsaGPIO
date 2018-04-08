@@ -43,8 +43,10 @@ public:
     value = _value;
     if (mode == OUTPUT)
       digitalWrite(pin, value ? HIGH : LOW);
+#ifndef ESP32
      else if (mode == PWM_OUTPUT)
       analogWrite(pin, value);
+#endif
   };
   virtual int getValue() {
     if (mode == OUTPUT || mode == PWM_OUTPUT) return value;

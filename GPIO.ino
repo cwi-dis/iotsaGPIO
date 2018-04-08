@@ -56,7 +56,7 @@ void setup(void){
 #ifndef ESP32
   ESP.wdtEnable(WDTO_120MS);
 #endif
-#ifdef ESP32
+#ifdef ESP32not
   wifi_ps_type_t curMode;
   esp_wifi_get_ps(&curMode);
   IotsaSerial.print("esp_wifi_get_ps()=");
