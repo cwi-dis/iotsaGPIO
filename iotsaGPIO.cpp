@@ -13,8 +13,10 @@ struct pinModeNames pinModeNames[] = {
   {INPUT_PULLUP, "input_pullup"},
   {OUTPUT, "output"},
   {PWM_OUTPUT, "pwm_output"},
+  {PULSE_OUTPUT, "pulse_output"},
   {-1, "unused"},
 };
+
 #define nPinModeNames (sizeof(pinModeNames)/sizeof(pinModeNames[0]))
 
 static int name2mode(const String &name) {
@@ -124,7 +126,7 @@ bool IotsaGPIOMod::putHandler(const char *path, const JsonVariant& request, Json
       GPIOPort *p = ports[pi];
       if (args.containsKey(p->name)) {
         int m = p->getMode();
-        if (m == OUTPUT || m == PWM_OUTPUT) {
+        if (m == OUTPUT || m == PWM_OUTPUT || m == PULSE_OUTPUT) {
           p->setValue(args[p->name].as<int>());
           anyDone = true;
         } else {
@@ -180,6 +182,10 @@ void IotsaGPIOMod::configSave() {
 }
 
 void IotsaGPIOMod::loop() {
+  for (int pi=0; pi<nPorts; pi++) {
+    GPIOPort *p = ports[pi];
+    p->loop();
+  }
 }
 
 String IotsaGPIOMod::info() {

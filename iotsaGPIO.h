@@ -4,6 +4,7 @@
 #include "iotsaApi.h"
 
 #define PWM_OUTPUT OUTPUT + 42
+#define PULSE_OUTPUT OUTPUT + 43
 
 class GPIOPort {
 public:
@@ -17,6 +18,7 @@ public:
   virtual bool setMode(int _mode) = 0;
   virtual void setValue(int _value) = 0;
   virtual int getValue() = 0;
+  virtual void loop() {}
   int getMode() {
     return mode;
   }
@@ -32,10 +34,11 @@ protected:
 class DigitalPort : public GPIOPort {
 public:
   DigitalPort(const char* _name, int _pin) : GPIOPort(_name, _pin) {}
+  
   virtual bool setMode(int _mode) {
     if (mode == _mode) return false;
     mode = _mode;
-    if (_mode == PWM_OUTPUT) _mode = OUTPUT;
+    if (_mode == PWM_OUTPUT || _mode == PULSE_OUTPUT) _mode = OUTPUT;
     pinMode(pin, _mode);
     return true;
   };
@@ -47,12 +50,39 @@ public:
      else if (mode == PWM_OUTPUT)
       analogWrite(pin, value);
 #endif
+    else if (mode == PULSE_OUTPUT) {
+        if (value > 0) {
+          digitalWrite(pin, HIGH);
+          pulseEndTime = millis() + value;
+        }
+        else {
+          digitalWrite(pin, LOW);
+          pulseEndTime = 0;
+        }
+    }
   };
   virtual int getValue() {
     if (mode == OUTPUT || mode == PWM_OUTPUT) return value;
+    if (mode == PULSE_OUTPUT){
+      if (pulseEndTime == 0) return 0;
+      return pulseEndTime - millis();
+    }
     return digitalRead(pin);
   };
+
+  virtual void loop() {
+    if (pulseEndTime < millis()) {
+      digitalWrite(pin, LOW);
+      pulseEndTime = 0;
+    }
+  };
+
+protected: 
+  unsigned long pulseEndTime;
+
 };
+
+
 
 class AnalogInput : public GPIOPort {
 public:
