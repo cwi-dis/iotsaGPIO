@@ -18,6 +18,8 @@
 #define WITH_FILES  // Enable static files webserver
 #define WITH_FILESUPLOAD  // Enable upload of static files for webserver
 #define WITH_FILESBACKUP  // Enable backup of all files including config files and webserver files
+#define WITH_LED // Enable LED module
+#define NEOPIXEL_PIN 15
 
 IotsaWebServer server(80);
 IotsaApplication application(server, "Iotsa GPIO Server");
@@ -48,6 +50,11 @@ IotsaFilesUploadMod filesUploadMod(application);
 #ifdef WITH_FILESBACKUP
 #include "iotsaFilesBackup.h"
 IotsaFilesBackupMod filesBackupMod(application);
+#endif
+
+#ifdef WITH_LED
+#include "iotsaLed.h"
+IotsaLedMod ledMod(application, NEOPIXEL_PIN);
 #endif
 
 void setup(void){
