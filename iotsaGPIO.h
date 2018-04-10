@@ -71,7 +71,7 @@ public:
   };
 
   virtual void loop() {
-    if (pulseEndTime < millis()) {
+    if (pulseEndTime != 0 && pulseEndTime < millis()) {
       digitalWrite(pin, LOW);
       pulseEndTime = 0;
     }
