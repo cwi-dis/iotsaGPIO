@@ -20,14 +20,14 @@ struct pinModeNames pinModeNames[] = {
 #define nPinModeNames (sizeof(pinModeNames)/sizeof(pinModeNames[0]))
 
 static int name2mode(const String &name) {
-  for(int i=0; i<nPinModeNames; i++) {
+  for(unsigned int i=0; i<nPinModeNames; i++) {
     if (name == pinModeNames[i].modeName) return pinModeNames[i].mode;
   }
   return pinModeNames[0].mode;
 }
 
 static String& mode2name(int mode) {
-  for(int i=0; i<nPinModeNames; i++) {
+  for(unsigned int i=0; i<nPinModeNames; i++) {
     if (mode == pinModeNames[i].mode) return pinModeNames[i].modeName;
   }
   return pinModeNames[0].modeName;
@@ -51,7 +51,7 @@ void
 IotsaGPIOMod::handler() {
   // First check configuration changes
   bool anyChanged = false;
-  for (int pi=0; pi<nPorts; pi++) {
+  for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
     String argName = p->name + "mode";
     if (server.hasArg(argName)) {
@@ -70,7 +70,7 @@ IotsaGPIOMod::handler() {
   if (anyChanged) configSave();
 
   // Now set values
-  for (int pi=0; pi<nPorts; pi++) {
+  for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
     String argName = p->name + "value";
     if (server.hasArg(argName)) {
@@ -85,7 +85,7 @@ IotsaGPIOMod::handler() {
     message += "<tr><td>" + p->name + "</td>";
     int thisMode = p->getMode();
     message += "<td><select name='" + p->name + "mode'>";
-    for(int i=0; i<nPinModeNames; i++) {
+    for(unsigned int i=0; i<nPinModeNames; i++) {
       message += "<option value='" + pinModeNames[i].modeName + "'";
       if (pinModeNames[i].mode == thisMode) message += " selected";
       message += ">"+pinModeNames[i].modeName+"</option>";
@@ -100,7 +100,7 @@ IotsaGPIOMod::handler() {
 
 bool IotsaGPIOMod::getHandler(const char *path, JsonObject& reply) {
   if (strcmp(path, "/api/io") == 0) {
-    for (int pi=0; pi<nPorts; pi++) {
+    for (unsigned int pi=0; pi<nPorts; pi++) {
       GPIOPort *p = ports[pi];
       if (p->getMode() == INPUT || p->getMode() == INPUT_PULLUP) {
         reply[p->name] = p->getValue();
@@ -108,7 +108,7 @@ bool IotsaGPIOMod::getHandler(const char *path, JsonObject& reply) {
     }
     return true;
   } else if (strcmp(path, "/api/ioconfig") == 0) {
-    for (int pi=0; pi<nPorts; pi++) {
+    for (unsigned int pi=0; pi<nPorts; pi++) {
       GPIOPort *p = ports[pi];
       String modeName = mode2name(p->getMode());
       reply[p->name] = modeName;
@@ -122,7 +122,7 @@ bool IotsaGPIOMod::putHandler(const char *path, const JsonVariant& request, Json
   JsonObject &args = request.as<JsonObject>();
   bool anyDone = false;
   if (strcmp(path, "/api/io") == 0) {
-    for (int pi=0; pi<nPorts; pi++) {
+    for (unsigned int pi=0; pi<nPorts; pi++) {
       GPIOPort *p = ports[pi];
       if (args.containsKey(p->name)) {
         int m = p->getMode();
@@ -138,7 +138,7 @@ bool IotsaGPIOMod::putHandler(const char *path, const JsonVariant& request, Json
     return anyDone;
   } else if (strcmp(path, "/api/ioconfig") == 0) {
     if (!iotsaConfig.inConfigurationMode()) return false;
-    for (int pi=0; pi<nPorts; pi++) {
+    for (unsigned int pi=0; pi<nPorts; pi++) {
       GPIOPort *p = ports[pi];
       if (args.containsKey(p->name)) {
         int mode = name2mode(args[p->name].as<String>());
@@ -164,7 +164,7 @@ void IotsaGPIOMod::serverSetup() {
 
 void IotsaGPIOMod::configLoad() {
   IotsaConfigFileLoad cf("/config/GPIO.cfg");
-  for (int pi=0; pi<nPorts; pi++) {
+  for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
     int mode;
     cf.get(p->name+"mode", mode, INPUT);
@@ -174,15 +174,14 @@ void IotsaGPIOMod::configLoad() {
 
 void IotsaGPIOMod::configSave() {
   IotsaConfigFileSave cf("/config/GPIO.cfg");
-  for (int pi=0; pi<nPorts; pi++) {
+  for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
-    int mode;
     cf.put(p->name+"mode", p->getMode());
   }
 }
 
 void IotsaGPIOMod::loop() {
-  for (int pi=0; pi<nPorts; pi++) {
+  for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
     p->loop();
   }
