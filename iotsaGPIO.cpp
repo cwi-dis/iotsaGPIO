@@ -47,6 +47,7 @@ GPIOPort *ports[] = {
 };
 #define nPorts (sizeof(ports)/sizeof(ports[0]))
 
+#ifdef IOTSA_WITH_WEB
 void
 IotsaGPIOMod::handler() {
   // First check configuration changes
@@ -54,11 +55,11 @@ IotsaGPIOMod::handler() {
   for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
     String argName = p->name + "mode";
-    if (server.hasArg(argName)) {
-      int mode = name2mode(server.arg(argName));
+    if (server->hasArg(argName)) {
+      int mode = name2mode(server->arg(argName));
       if (mode != p->getMode()) {
         if (!iotsaConfig.inConfigurationMode()) {
-          server.send(401, "text/plain", "401 Unauthorized, not in configuration mode");
+          server->send(401, "text/plain", "401 Unauthorized, not in configuration mode");
           return;
         }
         if (p->setMode(mode)) {
@@ -73,8 +74,8 @@ IotsaGPIOMod::handler() {
   for (unsigned int pi=0; pi<nPorts; pi++) {
     GPIOPort *p = ports[pi];
     String argName = p->name + "value";
-    if (server.hasArg(argName)) {
-      int value = server.arg(argName).toInt();
+    if (server->hasArg(argName)) {
+      int value = server->arg(argName).toInt();
       p->setValue(value);
     }
   }
@@ -95,9 +96,17 @@ IotsaGPIOMod::handler() {
     message += "</tr>";
   }
   message += "</table><input type='submit'></form>";
-  server.send(200, "text/html", message);
+  server->send(200, "text/html", message);
 }
 
+String IotsaGPIOMod::info() {
+  String message = "<p>Built with GPIO module. See <a href=\"/ioconfig\">/ioconfig</a> to examine GPIO pin configuration and values, ";
+  message += "<a href=\"/api/io\">/api/io</a> for REST access to values, <a href=\"/api/ioconfig\">/api/ioconfig</a> to configure using REST.</p>";
+  return message;
+}
+#endif
+
+#ifdef IOTSA_WITH_API
 bool IotsaGPIOMod::getHandler(const char *path, JsonObject& reply) {
   if (strcmp(path, "/api/io") == 0) {
     for (unsigned int pi=0; pi<nPorts; pi++) {
@@ -151,16 +160,21 @@ bool IotsaGPIOMod::putHandler(const char *path, const JsonVariant& request, Json
   }
   return false;
 }
+#endif
 
 void IotsaGPIOMod::setup() {
   configLoad();
 }
 
 void IotsaGPIOMod::serverSetup() {
-  server.on("/ioconfig", std::bind(&IotsaGPIOMod::handler, this));
+#ifdef IOTSA_WITH_WEB
+  server->on("/ioconfig", std::bind(&IotsaGPIOMod::handler, this));
+#endif
+#ifdef IOTSA_WITH_API
   api.setup("/api/io", true, true);
   api.setup("/api/ioconfig", true, true);
   name = "io";
+#endif
 }
 
 void IotsaGPIOMod::configLoad() {
@@ -186,10 +200,4 @@ void IotsaGPIOMod::loop() {
     GPIOPort *p = ports[pi];
     p->loop();
   }
-}
-
-String IotsaGPIOMod::info() {
-  String message = "<p>Built with GPIO module. See <a href=\"/ioconfig\">/ioconfig</a> to examine GPIO pin configuration and values, ";
-  message += "<a href=\"/api/io\">/api/io</a> for REST access to values, <a href=\"/api/ioconfig\">/api/ioconfig</a> to configure using REST.</p>";
-  return message;
 }

@@ -21,8 +21,7 @@
 #define WITH_LED // Enable LED module
 #define NEOPIXEL_PIN 15
 
-IotsaWebServer server(80);
-IotsaApplication application(server, "Iotsa GPIO Server");
+IotsaApplication application("Iotsa GPIO Server");
 IotsaWifiMod wifiMod(application);
 
 IotsaGPIOMod gpioMod(application);
