@@ -160,6 +160,7 @@ void IotsaGPIOMod::serverSetup() {
   server.on("/ioconfig", std::bind(&IotsaGPIOMod::handler, this));
   api.setup("/api/io", true, true);
   api.setup("/api/ioconfig", true, true);
+  name = "io";
 }
 
 void IotsaGPIOMod::configLoad() {
