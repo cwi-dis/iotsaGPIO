@@ -36,7 +36,7 @@ public:
   DigitalPort(const char* _name, int _pin) : GPIOPort(_name, _pin) {}
   
   virtual bool setMode(int _mode) {
-    if (mode == _mode) return false;
+    if (mode == _mode) return true;
     mode = _mode;
     if (_mode == PWM_OUTPUT || _mode == PULSE_OUTPUT) _mode = OUTPUT;
     pinMode(pin, _mode);
