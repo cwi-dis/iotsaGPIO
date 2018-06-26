@@ -9,7 +9,7 @@
 #include <Esp.h>
 #include "iotsa.h"
 #include "iotsaWifi.h"
-#include "iotsaGPIO.h"
+#include "iotsaIOPort.h"
 
 // CHANGE: Add application includes and declarations here
 
@@ -24,7 +24,7 @@
 IotsaApplication application("Iotsa GPIO Server");
 IotsaWifiMod wifiMod(application);
 
-IotsaGPIOMod gpioMod(application);
+IotsaIOPortMod gpioMod(application);
 
 #ifdef WITH_NTP
 #include "iotsaNtp.h"
