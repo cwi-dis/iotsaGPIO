@@ -128,7 +128,7 @@ bool IotsaGPIOMod::getHandler(const char *path, JsonObject& reply) {
 }
 
 bool IotsaGPIOMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply) {
-  JsonObject &args = request.as<JsonObject>();
+  JsonObject args = request.as<JsonObject>();
   bool anyDone = false;
   if (strcmp(path, "/api/io") == 0) {
     for (unsigned int pi=0; pi<nPorts; pi++) {
