@@ -9,7 +9,7 @@
 #include <Esp.h>
 #include "iotsa.h"
 #include "iotsaWifi.h"
-#include "iotsaGPIO.h"
+#include "iotsaIOPort.h"
 
 // CHANGE: Add application includes and declarations here
 
@@ -18,13 +18,13 @@
 #define WITH_FILES  // Enable static files webserver
 #define WITH_FILESUPLOAD  // Enable upload of static files for webserver
 #define WITH_FILESBACKUP  // Enable backup of all files including config files and webserver files
-#define WITH_LED // Enable LED module
+#define WITH_LEDCONTROL // Enable LED control module
 #define NEOPIXEL_PIN 15
 
 IotsaApplication application("Iotsa GPIO Server");
 IotsaWifiMod wifiMod(application);
 
-IotsaGPIOMod gpioMod(application);
+IotsaIOPortMod gpioMod(application);
 
 #ifdef WITH_NTP
 #include "iotsaNtp.h"
@@ -51,9 +51,9 @@ IotsaFilesUploadMod filesUploadMod(application);
 IotsaFilesBackupMod filesBackupMod(application);
 #endif
 
-#ifdef WITH_LED
-#include "iotsaLed.h"
-IotsaLedMod ledMod(application, NEOPIXEL_PIN);
+#ifdef WITH_LEDCONTROL
+#include "iotsaLedControl.h"
+IotsaLedControlMod ledMod(application, NEOPIXEL_PIN);
 #endif
 
 void setup(void){

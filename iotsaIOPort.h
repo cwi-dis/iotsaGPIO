@@ -1,14 +1,14 @@
-#ifndef _IOTSASIMPLEIO_H_
-#define _IOTSASIMPLEIO_H_
+#ifndef _IOTSAIOPORT_H_
+#define _IOTSAIOPORT_H_
 #include "iotsa.h"
 #include "iotsaApi.h"
 
 #define PWM_OUTPUT OUTPUT + 42
 #define PULSE_OUTPUT OUTPUT + 43
 
-class GPIOPort {
+class IOPortPort {
 public:
-  GPIOPort(const char* _name, int _pin)
+  IOPortPort(const char* _name, int _pin)
   : name(_name),
     pin(_pin),
     mode(INPUT),
@@ -31,9 +31,9 @@ protected:
   bool changed;
 };
 
-class DigitalPort : public GPIOPort {
+class DigitalPort : public IOPortPort {
 public:
-  DigitalPort(const char* _name, int _pin) : GPIOPort(_name, _pin) {}
+  DigitalPort(const char* _name, int _pin) : IOPortPort(_name, _pin) {}
   
   virtual bool setMode(int _mode) {
     if (mode == _mode) return true;
@@ -84,9 +84,9 @@ protected:
 
 
 
-class AnalogInput : public GPIOPort {
+class AnalogInput : public IOPortPort {
 public:
-  AnalogInput(const char *name, int _pin) : GPIOPort(name, _pin) {}
+  AnalogInput(const char *name, int _pin) : IOPortPort(name, _pin) {}
   virtual bool setMode(int _mode) { 
     if (_mode < 0 || _mode == INPUT) { 
       mode = _mode; return true;
@@ -99,9 +99,9 @@ public:
   };
 };
 
-class TimestampInput : public GPIOPort {
+class TimestampInput : public IOPortPort {
 public:
-  TimestampInput() : GPIOPort("timestamp", -1) {}
+  TimestampInput() : IOPortPort("timestamp", -1) {}
   virtual bool setMode(int _mode) { 
     if (_mode < 0 || _mode == INPUT) { 
       mode = _mode; return true;
@@ -114,7 +114,7 @@ public:
   };
 };
 
-class IotsaGPIOMod : public IotsaApiMod {
+class IotsaIOPortMod : public IotsaApiMod {
 public:
   using IotsaApiMod::IotsaApiMod;
   void setup();
