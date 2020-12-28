@@ -179,6 +179,7 @@ void IotsaIOPortMod::serverSetup() {
 
 void IotsaIOPortMod::configLoad() {
   IotsaConfigFileLoad cf("/config/GPIO.cfg");
+  // xxxjack should use object interface
   for (unsigned int pi=0; pi<nPorts; pi++) {
     IOPortPort *p = ports[pi];
     int mode;
