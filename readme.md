@@ -1,5 +1,8 @@
 # iotsaGPIO - web server that interfaces to hardware signals
 
+![build-platformio](https://github.com/cwi-dis/iotsaGPIO/workflows/build-platformio/badge.svg)
+![build-arduino](https://github.com/cwi-dis/iotsaGPIO/workflows/build-arduino/badge.svg)
+
 This is a wifi http server that allows access to some 3.3v hardware signals (analog input, digital input, digital output, PWM output). It is built using the iotsa framework.
 
 Home page is <https://github.com/cwi-dis/iotsaGPIO>.
