@@ -33,7 +33,7 @@ protected:
 
 class DigitalPort : public IOPortPort {
 public:
-  DigitalPort(const char* _name, int _pin) : IOPortPort(_name, _pin) {}
+  DigitalPort(const char* _name, int _pin) : IOPortPort(_name, _pin), pulseEndTime(0) {}
   
   virtual bool setMode(int _mode) {
     if (mode == _mode) return true;

@@ -133,10 +133,11 @@ bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, Js
   if (strcmp(path, "/api/io") == 0) {
     for (unsigned int pi=0; pi<nPorts; pi++) {
       IOPortPort *p = ports[pi];
-      if (args.containsKey(p->name)) {
+      int value;
+      if (getFromRequest<int>(args, p->name.c_str(), value)) {
         int m = p->getMode();
         if (m == OUTPUT || m == PWM_OUTPUT || m == PULSE_OUTPUT) {
-          p->setValue(args[p->name].as<int>());
+          p->setValue(value);
           anyDone = true;
         } else {
           IFDEBUG IotsaSerial.print("Attempt to set input port");
@@ -149,8 +150,9 @@ bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, Js
     if (!iotsaConfig.inConfigurationMode()) return false;
     for (unsigned int pi=0; pi<nPorts; pi++) {
       IOPortPort *p = ports[pi];
-      if (args.containsKey(p->name)) {
-        int mode = name2mode(args[p->name].as<String>());
+      String modeName;
+      if (getFromRequest<const char *>(args, p->name.c_str(), modeName)) {
+        int mode = name2mode(modeName);
         if (!p->setMode(mode)) return false;
         anyDone = true;
       }
@@ -173,7 +175,10 @@ void IotsaIOPortMod::serverSetup() {
 #ifdef IOTSA_WITH_API
   api.setup("/api/io", true, true);
   api.setup("/api/ioconfig", true, true);
-  name = "io";
+  // name must match the *config* path ("/api/ioconfig"), not the live-value path
+  // ("/api/io"), so that iotsa backup/restore (which only ever queries /api/<name>)
+  // captures the persisted pin-mode configuration instead of a live input snapshot.
+  name = "ioconfig";
 #endif
 }
 
