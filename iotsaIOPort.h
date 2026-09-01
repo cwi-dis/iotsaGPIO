@@ -114,11 +114,11 @@ public:
   };
 };
 
-class IotsaIOPortMod : public IotsaApiMod {
+class IotsaIOPortMod : public IotsaModule {
 public:
-  using IotsaApiMod::IotsaApiMod;
+  using IotsaModule::IotsaModule;
   void setup() override;
-  void serverSetup() override;
+  void lateSetup() override;
   void loop() override;
   String info() override;
 protected:
@@ -126,7 +126,7 @@ protected:
   bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply) override;
   void configLoad() override;
   void configSave() override;
-  void handler();
+  void webHandler() override;
 };
 
 #endif

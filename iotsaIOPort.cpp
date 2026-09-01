@@ -47,9 +47,9 @@ IOPortPort *ports[] = {
 };
 #define nPorts (sizeof(ports)/sizeof(ports[0]))
 
-#ifdef IOTSA_WITH_WEB
 void
-IotsaIOPortMod::handler() {
+IotsaIOPortMod::webHandler() {
+  IotsaWebServer *server = api.webService->server;
   // First check configuration changes
   bool anyChanged = false;
   for (unsigned int pi=0; pi<nPorts; pi++) {
@@ -104,9 +104,7 @@ String IotsaIOPortMod::info() {
   message += "<a href=\"/api/io\">/api/io</a> for REST access to values, <a href=\"/api/ioconfig\">/api/ioconfig</a> to configure using REST.</p>";
   return message;
 }
-#endif
 
-#ifdef IOTSA_WITH_API
 bool IotsaIOPortMod::getHandler(const char *path, JsonObject& reply) {
   if (strcmp(path, "/api/io") == 0) {
     for (unsigned int pi=0; pi<nPorts; pi++) {
@@ -162,24 +160,20 @@ bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, Js
   }
   return false;
 }
-#endif
 
 void IotsaIOPortMod::setup() {
   configLoad();
 }
 
-void IotsaIOPortMod::serverSetup() {
-#ifdef IOTSA_WITH_WEB
-  server->on("/ioconfig", std::bind(&IotsaIOPortMod::handler, this));
-#endif
-#ifdef IOTSA_WITH_API
-  api.setup("/api/io", true, true);
-  api.setup("/api/ioconfig", true, true);
-  // name must match the *config* path ("/api/ioconfig"), not the live-value path
-  // ("/api/io"), so that iotsa backup/restore (which only ever queries /api/<name>)
+void IotsaIOPortMod::lateSetup() {
+  // "io" carries live input values (GET) and output writes (PUT); it deliberately
+  // has no web page of its own -- "ioconfig" is the single page for both.
+  api.setup("io", true, true, false, false);
+  api.setup("ioconfig", true, true);
+  // name must match the *config* endpoint ("ioconfig"), not the live-value one
+  // ("io"), so that iotsa backup/restore (which only ever queries /api/<name>)
   // captures the persisted pin-mode configuration instead of a live input snapshot.
   name = "ioconfig";
-#endif
 }
 
 void IotsaIOPortMod::configLoad() {

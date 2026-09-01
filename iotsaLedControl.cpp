@@ -3,11 +3,11 @@
 //
 #include "iotsaLedControl.h"
 
-#ifdef IOTSA_WITH_WEB
 void
-IotsaLedControlMod::handler() {
-  // Handles the page that is specific to the Led module, greets the user and
-  // optionally stores a new name to greet the next time.
+IotsaLedControlMod::webHandler() {
+  IotsaWebServer *server = api.webService->server;
+  // Handles the page that is specific to the Led module: a small form to fire a
+  // colour/blink pattern on the status LED.
   bool anyChanged = false;
   uint32_t _rgb = 0xffffff;
   int _count = 1;
@@ -46,7 +46,6 @@ String IotsaLedControlMod::info() {
   String rv = "<p>See <a href=\"/led\">/led</a> for flashing the led in a color pattern.</p>";
   return rv;
 }
-#endif // IOTSA_WITH_WEB
 
 bool IotsaLedControlMod::getHandler(const char *path, JsonObject& reply) {
   reply["rgb"] = rgb;
@@ -66,11 +65,8 @@ bool IotsaLedControlMod::putHandler(const char *path, const JsonVariant& request
   return true;
 }
 
-void IotsaLedControlMod::serverSetup() {
-  // Setup the web server hooks for this module.
-#ifdef IOTSA_WITH_WEB
-  server->on("/led", std::bind(&IotsaLedControlMod::handler, this));
-#endif // IOTSA_WITH_WEB
-  api.setup("/api/led", true, true);
+void IotsaLedControlMod::lateSetup() {
+  // get=true auto-registers the /led web page.
+  api.setup("led", true, true);
   name = "led";
 }

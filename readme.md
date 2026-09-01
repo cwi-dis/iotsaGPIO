@@ -12,14 +12,14 @@ As distributed the service allows access to 6 digital ports (which can be config
 
 ## Software requirements
 
-* Arduino IDE, v1.6 or later.
-* The iotsa framework, download from <https://github.com/cwi-dis/iotsa>.
-
-Or you can build using PlatformIO.
+* PlatformIO (recommended). `pio run` builds every environment in `platformio.ini`.
+* Or the Arduino IDE, with the iotsa framework from <https://github.com/cwi-dis/iotsa>.
 
 ## Hardware requirements
 
-* a iotsa board. Alternatively you can use any other esp8266 board, but then you may have to adapt the available I/O pins.
+* a iotsa board (ESP8266). Alternatively any other ESP8266 board, or an ESP32 /
+  ESP32-C3 board (see the `esp32c3supermini` environment) -- but then you may have
+  to adapt the available I/O pins.
 
 ## REST API
 
@@ -33,6 +33,7 @@ Or you can build using PlatformIO.
 - `'input_pullup'` for digital input ports with the internall pullup resistor enabled (so open inputs read as 1 in stead of a random undefined value).
 - `'output'` for digital output ports.
 - `'pwm_output'` for digital output ports that present a pseudo-analog output value using pulse-width modulation.
+- `'pulse_output'` for digital output ports that emit a single HIGH pulse (value = length in ms) and then return LOW on their own.
 - `'unused'` for ports that are not in use.
 
 `PUT /api/ioconfig` allows to set the configuration for each port, using the same values as above. The device must be in configuration mode.
