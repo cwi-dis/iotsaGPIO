@@ -58,7 +58,7 @@ IotsaIOPortMod::webHandler() {
     if (server->hasArg(argName)) {
       int mode = name2mode(server->arg(argName));
       if (mode != p->getMode()) {
-        if (!iotsaConfig.inConfigurationMode()) {
+        if (!iotsaController.inConfigurationMode()) {
           server->send(401, "text/plain", "401 Unauthorized, not in configuration mode");
           return;
         }
@@ -145,7 +145,7 @@ bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, Js
     }
     return anyDone;
   } else if (strcmp(path, "/api/ioconfig") == 0) {
-    if (!iotsaConfig.inConfigurationMode()) return false;
+    if (!iotsaController.inConfigurationMode()) return false;
     for (unsigned int pi=0; pi<nPorts; pi++) {
       IOPortPort *p = ports[pi];
       String modeName;
