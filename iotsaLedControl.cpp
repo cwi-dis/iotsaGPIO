@@ -6,13 +6,14 @@
 void
 IotsaLedControlMod::webHandler() {
   IotsaWebServer *server = api.webService->server;
-  // Handles the page that is specific to the Led module: a small form to fire a
-  // colour/blink pattern on the status LED.
+  // Handles the page that is specific to the Led module: triggers a transient
+  // status-LED pulse (cwi-dis/iotsa#176) with the requested color/timing. It
+  // always decays back to the normal status display on its own.
   bool anyChanged = false;
   uint32_t _rgb = 0xffffff;
-  int _count = 1;
-  int _onDuration = 0;
-  int _offDuration = 0;
+  uint32_t _onDuration = 0;
+  uint32_t _offDuration = 0;
+  uint32_t _durationMs = 1000;
   if( server->hasArg("rgb")) {
     _rgb = strtol(server->arg("rgb").c_str(), 0, 16);
     anyChanged = true;
@@ -25,48 +26,41 @@ IotsaLedControlMod::webHandler() {
     _offDuration = server->arg("offDuration").toInt();
     anyChanged = true;
   }
-  if( server->hasArg("count")) {
-    _count = server->arg("count").toInt();
+  if( server->hasArg("durationMs")) {
+    _durationMs = server->arg("durationMs").toInt();
     anyChanged = true;
   }
-  if (anyChanged) set(_rgb, _onDuration, _offDuration, _count);
-  
+  if (anyChanged) iotsaStatus.setStatusPulse(_rgb, _onDuration, _offDuration, _durationMs, "web led control");
+
   String message = "<html><head><title>Led Server</title></head><body><h1>Led Server</h1>";
+  message += "<p>Triggers a transient status-LED pulse; it decays back to the normal status display automatically.</p>";
   message += "<form method='get'>";
   message += "Color (hex rrggbb): <input type='text' name='rgb'><br>";
   message += "On time (ms): <input type='text' name='onDuration'><br>";
   message += "Off time (ms): <input type='text' name='offDuration'><br>";
-  message += "Repeat count: <input type='text' name='count'><br>";
+  message += "Total duration (ms): <input type='text' name='durationMs' value='1000'><br>";
   message += "<input type='submit'></form></body></html>";
   server->send(200, "text/html", message);
 }
 
 String IotsaLedControlMod::info() {
   // Return some information about this module, for the main page of the web server.
-  String rv = "<p>See <a href=\"/led\">/led</a> for flashing the led in a color pattern.</p>";
+  String rv = "<p>See <a href=\"/led\">/led</a> for triggering a status-LED pulse.</p>";
   return rv;
-}
-
-bool IotsaLedControlMod::getHandler(const char *path, JsonObject& reply) {
-  reply["rgb"] = rgb;
-  reply["onDuration"] = onDuration;
-  reply["offDuration"] = offDuration;
-  reply["isOn"] = isOn;
-  reply["count"] = remainingCount;
-  return true;
 }
 
 bool IotsaLedControlMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply) {
   uint32_t _rgb = request["rgb"]|0xffffff;
-  int _onDuration = request["onDuration"]|0;
-  int _offDuration = request["offDuration"]|0;
-  int _count = request["count"]|0;
-  set(_rgb, _onDuration, _offDuration, _count);
+  uint32_t _onDuration = request["onDuration"]|0;
+  uint32_t _offDuration = request["offDuration"]|0;
+  uint32_t _durationMs = request["durationMs"]|1000;
+  iotsaStatus.setStatusPulse(_rgb, _onDuration, _offDuration, _durationMs, "REST led control");
   return true;
 }
 
 void IotsaLedControlMod::lateSetup() {
-  // get=true auto-registers the /led web page.
-  api.setup("led", true, true);
+  // PUT + web page; no REST GET, since a pulse is transient -- there's
+  // nothing meaningful to read back (cwi-dis/iotsa#256).
+  api.setup("led", false, true);
   name = "led";
 }
