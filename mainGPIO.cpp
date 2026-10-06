@@ -8,26 +8,25 @@
 
 #include <Esp.h>
 #include "iotsa.h"
-#include "iotsaWifi.h"
-#include "iotsaOta.h"
 #include "iotsaFiles.h"
 #include "iotsaFilesUpload.h"
 #include "iotsaFilesBackup.h"
 #include "iotsaIOPort.h"
 #include "iotsaLedControl.h"
 
-#define NEOPIXEL_PIN 15
-
 IotsaApplication application("Iotsa GPIO Server");
-IotsaWifiMod wifiMod(application);
 
 IotsaIOPortMod gpioMod(application);
-
-IotsaOtaMod otaMod(application);                      // OTA firmware updates
 IotsaFilesMod filesMod(application);                  // static file webserver
 IotsaFilesUploadMod filesUploadMod(application);      // upload of static files
 IotsaFilesBackupMod filesBackupMod(application);      // backup of config + files
-IotsaLedControlMod ledMod(application, NEOPIXEL_PIN); // status LED, also REST-controllable
+// Status LED, also REST-controllable: the board's own (NeoPixel or plain LED,
+// from its IOTSA_PIN_LED/IOTSA_LED_* defines), else a NeoPixel on GPIO15.
+#ifdef IOTSA_PIN_LED
+IotsaLedControlMod ledMod(application);
+#else
+IotsaLedControlMod ledMod(application, 15);
+#endif
 
 void setup(void){
   application.setup();
