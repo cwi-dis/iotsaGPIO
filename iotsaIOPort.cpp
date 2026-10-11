@@ -125,7 +125,7 @@ bool IotsaIOPortMod::getHandler(const char *path, JsonObject& reply) {
   return false;
 }
 
-bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply) {
+bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply, bool *changed) {
   JsonObject args = request.as<JsonObject>();
   bool anyDone = false;
   if (strcmp(path, "/api/io") == 0) {
@@ -138,27 +138,29 @@ bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, Js
           p->setValue(value);
           anyDone = true;
         } else {
-          IFDEBUG IotsaSerial.print("Attempt to set input port");
-          return false;
+          return apiError(400, (p->name + ": not an output").c_str());
         }
       }
     }
-    return anyDone;
+    return true;
   } else if (strcmp(path, "/api/ioconfig") == 0) {
-    if (!iotsaController.inConfigurationMode()) return false;
+    if (!iotsaController.inConfigurationMode()) return apiError(409, "not in configuration mode");
     for (unsigned int pi=0; pi<nPorts; pi++) {
       IOPortPort *p = ports[pi];
       String modeName;
       if (getFromRequest<const char *>(args, p->name.c_str(), modeName)) {
         int mode = name2mode(modeName);
-        if (!p->setMode(mode)) return false;
+        if (!p->setMode(mode)) return apiError(400, (p->name + ": invalid mode").c_str());
         anyDone = true;
       }
     }
-    if (anyDone) configSave();
-    return anyDone;
+    if (anyDone) {
+      configSave();
+      if (changed) *changed = true;
+    }
+    return true;
   }
-  return false;
+  return apiError(404, "not found");
 }
 
 void IotsaIOPortMod::setup() {

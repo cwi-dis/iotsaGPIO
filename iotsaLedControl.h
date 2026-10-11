@@ -17,7 +17,7 @@ public:
   void lateSetup() override;
   String info() override;
 protected:
-  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply) override;
+  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply, bool *changed = nullptr) override;
 private:
   void webHandler() override;
 };
