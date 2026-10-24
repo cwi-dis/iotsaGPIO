@@ -37,6 +37,9 @@ public:
   
   virtual bool setMode(int _mode) {
     if (mode == _mode) return true;
+#ifdef ESP32
+    if (_mode == PWM_OUTPUT) return false;  // analogWrite() is ESP8266 only here
+#endif
     mode = _mode;
     if (_mode == PWM_OUTPUT || _mode == PULSE_OUTPUT) _mode = OUTPUT;
     pinMode(pin, _mode);
@@ -122,11 +125,16 @@ public:
   void loop() override;
   String info() override;
 protected:
-  bool getHandler(const char *path, JsonObject& reply) override;
-  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply, bool *changed = nullptr) override;
+  // Two endpoints: /api/io (the values), /api/ioconfig (the modes).
+  void getHandler(IotsaApiContext& ctx) override;
+  void putHandler(IotsaApiContext& ctx) override;
+#ifdef IOTSA_WITH_WEB
+  String webTitle() override { return "GPIO"; }
+  void formHandler_args(IotsaWebContext& ctx) override;
+  void formHandler_fields(IotsaWebContext& ctx) override;
+#endif
   void configLoad() override;
   void configSave() override;
-  void webHandler() override;
 };
 
 #endif

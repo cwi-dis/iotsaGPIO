@@ -19,11 +19,23 @@ struct pinModeNames pinModeNames[] = {
 
 #define nPinModeNames (sizeof(pinModeNames)/sizeof(pinModeNames[0]))
 
+// -2 for a name that isn't a mode (-1 is "unused").
 static int name2mode(const String &name) {
   for(unsigned int i=0; i<nPinModeNames; i++) {
     if (name == pinModeNames[i].modeName) return pinModeNames[i].mode;
   }
-  return pinModeNames[0].mode;
+  return -2;
+}
+
+static int mode2index(int mode) {
+  for(unsigned int i=0; i<nPinModeNames; i++) {
+    if (mode == pinModeNames[i].mode) return i;
+  }
+  return 0;
+}
+
+static bool isOutput(int mode) {
+  return mode == OUTPUT || mode == PWM_OUTPUT || mode == PULSE_OUTPUT;
 }
 
 static String& mode2name(int mode) {
@@ -47,57 +59,68 @@ IOPortPort *ports[] = {
 };
 #define nPorts (sizeof(ports)/sizeof(ports[0]))
 
-void
-IotsaIOPortMod::webHandler() {
-  IotsaWebServer *server = api.webService->server;
-  // First check configuration changes
-  bool anyChanged = false;
+// This device sits next to a breadboard: changing a pin's mode and setting
+// its value are everyday use, so everything here is open to everyone on the
+// network. The modes are saved, so they survive a reboot.
+
+#ifdef IOTSA_WITH_WEB
+static const char *modeOptions[nPinModeNames];
+
+// Per pin, scoped "<pin>.": mode (a choice), value and set (an output's Set
+// button, so a form never writes values back that weren't meant to be set:
+// for a pulse output that would fire it again).
+void IotsaIOPortMod::formHandler_args(IotsaWebContext& ctx) {
   for (unsigned int pi=0; pi<nPorts; pi++) {
     IOPortPort *p = ports[pi];
-    String argName = p->name + "mode";
-    if (server->hasArg(argName)) {
-      int mode = name2mode(server->arg(argName));
-      if (mode != p->getMode()) {
-        if (!iotsaController.inConfigurationMode()) {
-          server->send(401, "text/plain", "401 Unauthorized, not in configuration mode");
-          return;
-        }
-        if (p->setMode(mode)) {
-          anyChanged = true;
-        }
+    IotsaWebContext::Scope s(ctx, p->name);
+    int idx = mode2index(p->getMode());
+    if (ctx.argChoice("mode", idx, nPinModeNames, IotsaContext::Saved)) {
+      if (!p->setMode(pinModeNames[idx].mode)) {
+        ctx.error(p->name + ": can't be " + pinModeNames[idx].modeName + ".");
+        return;
       }
     }
-  }
-  if (anyChanged) configSave();
-
-  // Now set values
-  for (unsigned int pi=0; pi<nPorts; pi++) {
-    IOPortPort *p = ports[pi];
-    String argName = p->name + "value";
-    if (server->hasArg(argName)) {
-      int value = server->arg(argName).toInt();
+    if (ctx.argAction("set", IotsaContext::Transient)) {
+      int value = 0;
+      ctx.arg("value", value, IotsaContext::Transient);
+      if (ctx.failed()) return;
+      if (!isOutput(p->getMode())) {
+        ctx.error(p->name + " is not an output.");
+        return;
+      }
       p->setValue(value);
     }
   }
-  String message = "<html><head><title>Simple GPIO module</title></head><body><h1>GPIO Configuration</h1>";
-  message += "<form method='get'><table><tr><th>Pin</th><th>Mode</th><th>Value</th></tr>";
-  for (IOPortPort **pp=ports; pp < &ports[nPorts]; pp++) {
-    IOPortPort *p = *pp;
-    message += "<tr><td>" + p->name + "</td>";
-    int thisMode = p->getMode();
-    message += "<td><select name='" + p->name + "mode'>";
-    for(unsigned int i=0; i<nPinModeNames; i++) {
-      message += "<option value='" + pinModeNames[i].modeName + "'";
-      if (pinModeNames[i].mode == thisMode) message += " selected";
-      message += ">"+pinModeNames[i].modeName+"</option>";
-    }
-    message += "</select></td>";
-    message += "<td><input name='" + p->name + "value' value='" + String(p->getValue()) + "'></td>";
-    message += "</tr>";
-  }
-  message += "</table><input type='submit'></form>";
-  server->send(200, "text/html", message);
 }
+
+void IotsaIOPortMod::formHandler_fields(IotsaWebContext& ctx) {
+  if (!ctx.includesEveryday()) return;
+  for (unsigned int i=0; i<nPinModeNames; i++) modeOptions[i] = pinModeNames[i].modeName.c_str();
+  ctx << "<p><a href='/ioconfig'>Reload</a></p>";
+  {
+    IotsaWebContext::Form form(ctx, "Save", "Pin modes");
+    for (unsigned int pi=0; pi<nPorts; pi++) {
+      IOPortPort *p = ports[pi];
+      IotsaWebContext::Scope s(ctx, p->name);
+      ctx.showChoice(p->name, "mode", mode2index(p->getMode()), modeOptions, nPinModeNames, IotsaContext::Saved);
+    }
+  }
+  ctx << "<h3>Values</h3>\n";
+  for (unsigned int pi=0; pi<nPorts; pi++) {
+    IOPortPort *p = ports[pi];
+    int mode = p->getMode();
+    if (mode == -1) continue;
+    IotsaWebContext::Scope s(ctx, p->name);
+    if (!isOutput(mode)) {
+      ctx.showStatus(p->name, "value", String(p->getValue()));
+      continue;
+    }
+    IotsaWebContext::Form form(ctx, "Set", "", "set");
+    const char *hint = mode == PULSE_OUTPUT ? "pulse length in ms, 0 stops it" : mode == PWM_OUTPUT ? "0 to 255" : "0 or 1";
+    ctx.showField(p->name, "value", mode == PULSE_OUTPUT ? 0 : p->getValue(), IotsaContext::Transient, hint);
+  }
+}
+#endif // IOTSA_WITH_WEB
 
 String IotsaIOPortMod::info() {
   String message = "<p>Built with IOPort module. See <a href=\"/ioconfig\">/ioconfig</a> to examine GPIO pin configuration and values, ";
@@ -105,62 +128,49 @@ String IotsaIOPortMod::info() {
   return message;
 }
 
-bool IotsaIOPortMod::getHandler(const char *path, JsonObject& reply) {
-  if (strcmp(path, "/api/io") == 0) {
-    for (unsigned int pi=0; pi<nPorts; pi++) {
-      IOPortPort *p = ports[pi];
-      if (p->getMode() == INPUT || p->getMode() == INPUT_PULLUP) {
-        reply[p->name] = p->getValue();
-      }
+// /api/io: the value of every pin in use (for a pulse output the ms left).
+// /api/ioconfig: the mode of every pin.
+void IotsaIOPortMod::getHandler(IotsaApiContext& ctx) {
+  bool config = ctx.path() == "/api/ioconfig";
+  for (unsigned int pi=0; pi<nPorts; pi++) {
+    IOPortPort *p = ports[pi];
+    if (config) {
+      ctx.show(p->name.c_str(), mode2name(p->getMode()));
+    } else if (p->getMode() != -1) {
+      ctx.show(p->name.c_str(), p->getValue());
     }
-    return true;
-  } else if (strcmp(path, "/api/ioconfig") == 0) {
-    for (unsigned int pi=0; pi<nPorts; pi++) {
-      IOPortPort *p = ports[pi];
-      String modeName = mode2name(p->getMode());
-      reply[p->name] = modeName;
-    }
-    return true;
   }
-  return false;
 }
 
-bool IotsaIOPortMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply, bool *changed) {
-  JsonObject args = request.as<JsonObject>();
-  bool anyDone = false;
-  if (strcmp(path, "/api/io") == 0) {
-    for (unsigned int pi=0; pi<nPorts; pi++) {
-      IOPortPort *p = ports[pi];
-      int value;
-      if (getFromRequest<int>(args, p->name.c_str(), value)) {
-        int m = p->getMode();
-        if (m == OUTPUT || m == PWM_OUTPUT || m == PULSE_OUTPUT) {
-          p->setValue(value);
-          anyDone = true;
-        } else {
-          return apiError(400, (p->name + ": not an output").c_str());
-        }
+// /api/io: set outputs, {"io4": 1}. /api/ioconfig: set modes, {"io4": "output"}.
+void IotsaIOPortMod::putHandler(IotsaApiContext& ctx) {
+  bool config = ctx.path() == "/api/ioconfig";
+  for (unsigned int pi=0; pi<nPorts; pi++) {
+    IOPortPort *p = ports[pi];
+    if (config) {
+      String modeName = mode2name(p->getMode());
+      if (!ctx.arg(p->name.c_str(), modeName, IotsaContext::Saved)) continue;
+      int mode = name2mode(modeName);
+      if (mode == -2 || !p->setMode(mode)) {
+        ctx.error(400, p->name + ": can't be " + modeName);
+        return;
       }
-    }
-    return true;
-  } else if (strcmp(path, "/api/ioconfig") == 0) {
-    if (!iotsaController.inConfigurationMode()) return apiError(409, "not in configuration mode");
-    for (unsigned int pi=0; pi<nPorts; pi++) {
-      IOPortPort *p = ports[pi];
-      String modeName;
-      if (getFromRequest<const char *>(args, p->name.c_str(), modeName)) {
-        int mode = name2mode(modeName);
-        if (!p->setMode(mode)) return apiError(400, (p->name + ": invalid mode").c_str());
-        anyDone = true;
+    } else {
+      // A command, not a field: setting a pulse to the same length fires it again.
+      if (!ctx.argAction(p->name.c_str(), IotsaContext::Transient)) continue;
+      JsonVariant v = ctx.request()[p->name];
+      if (!v.is<int>()) {
+        ctx.error(400, p->name + ": a number");
+        return;
       }
+      int value = v.as<int>();
+      if (!isOutput(p->getMode())) {
+        ctx.error(400, p->name + ": not an output");
+        return;
+      }
+      p->setValue(value);
     }
-    if (anyDone) {
-      configSave();
-      if (changed) *changed = true;
-    }
-    return true;
   }
-  return apiError(404, "not found");
 }
 
 void IotsaIOPortMod::setup() {
